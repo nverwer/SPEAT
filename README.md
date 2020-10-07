@@ -1,6 +1,6 @@
 # SPEAT - Simple Pipelines of Event API Transformers
 
-<img src="speat-logo.png" width=200"/>
+![SPEAT logo](speat-logo.png)
 
 ## Introduction
 
