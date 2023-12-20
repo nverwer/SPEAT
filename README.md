@@ -82,7 +82,11 @@ SPEAT is built around three interfaces; `EventHandler`, `EventSupplier`, and `Pi
 A `Pipeline<S, T>` transforms events of type `S` into events of type `T`.
 It extends both `EventHandler<S>` and `EventSupplier<T>`, which are the input and output side of the pipeline.
 
-![pipeline](http://yuml.me/diagram/nofunky;dir:TB/class/[EventHandler<S>]^[Pipeline<S‚T>],[EventSupplier<T>]^[Pipeline<S‚T>])
+```mermaid
+classDiagram
+  EventHandler~S~ --|> Pipeline~S‚T~
+  EventSupplier~T~ --|> Pipeline~S‚T~
+```
 
 The interface `EventHandler<Api>` is only a wrapper for `Api`, where `Api` is an event API, such as `Sax` or `Smax`.
 This interface is necessary because Java does not allow `Pipeline<S, T> extends S, EventSupplier<T>`
@@ -96,7 +100,10 @@ Pipelines can be chained together using their `EventHandler` and `EventSupplier`
 The `Pipeline<S, T>` interface contains a default method `append(Pipeline<T, U> next)`
 that returns a `Pipeline<S, U>`.
 
-![pipeline composition](http://yuml.me/diagram/plain;dir:LR/activity/%28S%2D%3ET%29%2D%3E%28T%2D%3EU%29)
+```mermaid
+flowchart LR
+  StoT[S -> T] --> TtoU[T -> U]
+```
 
 Typically, a pipeline is built by starting with a `Pipeline<InputSource, ApiIn>`
 for some `ApiIn`, and then `append`ing transformers.
@@ -151,7 +158,19 @@ Implementations of `InputSourceReader<Api>` include:
 * `TextDocumentReader`, which extends `InputSourceReader<TextDocumentApi>` and provides the whole document as one event.
 * `TextLineStreamReader`, which extends `InputSourceReader<TextLineStreamApi>` and generates one event for each line in the input document.
 
-![pipeline](http://yuml.me/diagram/nofunky;dir:TB/class/[InputSource]^[InputSourceBase],[InputSourceBase]^[...],[InputSourceBase]^[StringInputSource],[InputSourceBase]^[FileInputSource],[InputSourceReader<Api>]<>->[InputSource],[InputSourceReader<Api>]<>->[Api{bg:wheat}],[InputSourceReader<Api>]^[SaxReader],[SaxReader]<>->[Sax{bg:wheat}],[SaxReader]<>->[InputSource],[Api]-.-[Sax])
+```mermaid
+classDiagram
+  InputSource <|-- InputSourceBase
+  InputSourceBase <|-- FileInputSource
+  InputSourceBase <|-- StringInputSource
+  InputSourceBase <|-- xyzInputSource
+  InputSourceReader~Api~ o-- InputSource
+  InputSourceReader~Api~ o-- Api
+  InputSourceReader~Api~ <|-- SaxReader
+  SaxReader o-- InputSource
+  SaxReader o-- Sax
+  Api .. Sax
+```
 
 At the end of a pipeline, events of some `Api` can be serialized by a `Pipeline<Api, OutputSource>`.
 The `OutputSource` class has a base implementation `OutputSourceBase`, which has further implementations such as
@@ -167,4 +186,23 @@ This supports different serializations and other properties, set by the `setOutp
 See also [javax.xml.transform.OutputKeys](https://docs.oracle.com/javase/8/docs/api/javax/xml/transform/OutputKeys.html).
 * `TextDocumentWriter`, which serializes `TextDocumentApi` events.
 
-![pipeline](http://yuml.me/diagram/nofunky;dir:TB/class/[OutputSource]^[OutputSourceBase],[OutputSourceBase]^[...],[OutputSourceBase]^[StringOutputSource],[OutputSourceBase]^[FileOutputSource],[Pipeline<Api‚OutputSource>]^[OutputSourceWriter<Api>],[OutputSourceWriter<Api>]<>->[Api{bg:wheat}],[OutputSourceWriter<Api>]<>->[OutputSource],[Pipeline<Sax‚OutputSource>]^[SaxWriter],[SaxWriter]<>->[OutputSource],[SaxWriter]<>->[Sax{bg:wheat}])
+```mermaid
+classDiagram
+  OutputSource <|-- OutputSourceBase
+  OutputSourceBase <|-- xyzOutputSource
+  OutputSourceBase <|-- StringOutputSource
+  OutputSourceBase <|-- FileOutputSource
+  Pipeline~Api‚OutputSource~ <|-- OutputSourceWriter~Api~
+  OutputSourceWriter~Api~ o-- Api
+  OutputSourceWriter~Api~ o-- OutputSource
+```
+```mermaid
+classDiagram
+  OutputSource <|-- OutputSourceBase
+  OutputSourceBase <|-- xyzOutputSource
+  OutputSourceBase <|-- StringOutputSource
+  OutputSourceBase <|-- FileOutputSource
+  Pipeline~Sax‚OutputSource~ <|-- SaxWriter
+  SaxWriter o-- OutputSource
+  SaxWriter o-- Sax
+```
