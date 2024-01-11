@@ -1,6 +1,8 @@
 package org.greenmercury.speat.sax.to.smax;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
@@ -62,6 +64,9 @@ public class SaxToSmaxAdapter extends SaxEventHandler implements Pipeline<Sax, S
    */
   private List<NamespacePrefixMapping> namespaces = null;
 
+  // Measure performance
+  Instant startTime;
+
 
   /**
    * Constructor for {@code SaxToSmaxAdapter}
@@ -87,6 +92,7 @@ public class SaxToSmaxAdapter extends SaxEventHandler implements Pipeline<Sax, S
    */
   @Override
   public void startDocument() throws SAXException {
+    startTime = Instant.now();
     currentContent.setLength(0); // More efficient than constructing a new instance.
     currentNode = null;
     ancestorNodes = new Stack<>();
@@ -98,6 +104,8 @@ public class SaxToSmaxAdapter extends SaxEventHandler implements Pipeline<Sax, S
    */
   @Override
   public void endDocument() throws SAXException {
+    Instant endTime = Instant.now();
+    logger.info("Sax to Smax took "+Duration.between(startTime, endTime).toMillis()+" ms, from "+startTime.toString()+" to "+endTime.toString());
     // Pass on the current node to the next pipeline stage.
     if (handler != null) {
       SmaxDocument document = new SmaxDocument(currentNode, currentContent);

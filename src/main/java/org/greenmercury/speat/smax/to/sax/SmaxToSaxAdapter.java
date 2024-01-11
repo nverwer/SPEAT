@@ -1,5 +1,8 @@
 package org.greenmercury.speat.smax.to.sax;
 
+import java.time.Duration;
+import java.time.Instant;
+
 import org.greenmercury.speat.AbstractPipeline;
 import org.greenmercury.speat.NamespacePrefixMapping;
 import org.greenmercury.speat.PipelineException;
@@ -43,12 +46,15 @@ public class SmaxToSaxAdapter extends AbstractPipeline<Smax, Sax> implements Sma
    */
   @Override
   public void process(SmaxDocument smaxDocument) throws PipelineException {
+    Instant startTime = Instant.now();
     content = smaxDocument.getContentBuffer();
     SmaxElement root = smaxDocument.getMarkup();
     charPos = root.getStartPos();
     try {
       handler.startDocument();
       processElement(root);
+      Instant endTime = Instant.now();
+      getLogger().info("Smax to Sax took "+Duration.between(startTime, endTime).toMillis()+" ms, from "+startTime.toString()+" to "+endTime.toString());
       handler.endDocument();
     } catch (SAXException e) {
       throw new PipelineException(e);

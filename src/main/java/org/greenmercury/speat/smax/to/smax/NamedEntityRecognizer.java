@@ -1,6 +1,8 @@
 package org.greenmercury.speat.smax.to.smax;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -278,6 +280,7 @@ public class NamedEntityRecognizer extends SmaxDocumentTransformer {
     }
     // Set the trie-NER if we do not have it.
     if (triener == null) {
+      Instant startTime = Instant.now();
       triener = makeTrieNER(wordChars, noWordBefore, noWordAfter);
       grammarReader.setHandler(makeTrieGrammarHandler(triener));
       grammarLastCompiled = grammarSourceLastModified;
@@ -285,14 +288,36 @@ public class NamedEntityRecognizer extends SmaxDocumentTransformer {
       // Log sizes of all grammars that are in memory.
       String grammarURL = grammarSource.getUrl() != null ? grammarSource.getUrl().toString() : grammarSource.getClass().getName();
       trieStoreBytes.put(grammarURL, triener.getTrie().sizeInBytes());
-      StringBuffer sizesView = new StringBuffer();
+      Instant endTime = Instant.now();
+      getLogger().info("Trie for "+grammarURL+" has been compiled in "+Duration.between(startTime, endTime).toMillis()+" ms, from "+startTime.toString()+" to "+endTime.toString());
+      getLogger().info("  The trie-store contains "+trieStoreBytes.size()+" compiled tries. Sizes (MBytes):");
       trieStoreBytes.entrySet().stream().forEach(entry ->
-        sizesView.append("\n\t").append(entry.getKey()).append(": ").append(String.format("%.3f", entry.getValue() / 1048576f)));
-      getLogger().info("Trie for "+grammarURL+" has been compiled." +
-                       "\n\tThe trie-store contains "+trieStoreBytes.size()+" compiled tries. Sizes (MBytes):"+sizesView.toString());
+        getLogger().info("  "+entry.getKey()+": "+String.format("%.3f", entry.getValue() / 1048576f))
+      );
     }
+
+    String grammarURL = grammarSource.getUrl() != null ? grammarSource.getUrl().toString() : grammarSource.getClass().getName();
+    Instant startTime = Instant.now();
+    int fragments = 0;
+
     // Process the input document with the triener.
-    super.process(completeDocument);
+    //super.process(completeDocument);
+    this.completeDocument = completeDocument;
+    if (transformWithinNode == null) {
+      ++ fragments;
+      transform(completeDocument);
+    } else {
+      for (SmaxElement subMarkup : completeDocument.matchingNodes(transformWithinNode)) {
+        ++ fragments;
+        transform(new SmaxDocument(subMarkup, completeDocument.getContentView()));
+      }
+    }
+
+    Instant endTime = Instant.now();
+    getLogger().info("Named entity recogition on "+fragments+" fragments with "+grammarURL+" took "+Duration.between(startTime, Instant.now()).toMillis()+" ms, from "+startTime.toString()+" to "+endTime.toString());
+
+    // Pass on to the handler.
+    handler.process(completeDocument);
   }
 
   /**
@@ -305,6 +330,6 @@ public class NamedEntityRecognizer extends SmaxDocumentTransformer {
   protected void transform(SmaxDocument document) throws ConfigurationException, PipelineException {
     transformedDocument = document;
     triener.scan(transformedDocument.getContentView(), caseInsensitiveMinLength, fuzzyMinLength);
-  }
+}
 
 }
